@@ -58,7 +58,7 @@
 Download versi terbaru untuk platform Anda:
 
 ### Windows
-[![Download for Windows](https://img.shields.io/badge/Download-Windows%20x64-0078D6?style=for-the-badge&logo=windows)](https://github.com/yourusername/ptools/releases/latest/download/PTools-Setup-1.0.0.exe)
+[![Download for Windows](https://img.shields.io/badge/Download-Windows%20x64-0078D6?style=for-the-badge&logo=windows)](https://github.com/MhmmdSyahputra/ptools_desktopapp/releases/download/v1.0.0/PTools-Setup-1.0.0.exe)
 
 ### macOS
 [![Download for macOS](https://img.shields.io/badge/Download-macOS-000000?style=for-the-badge&logo=apple)](https://github.com/yourusername/ptools/releases/latest/download/PTools-1.0.0.dmg)
