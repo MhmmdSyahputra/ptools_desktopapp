@@ -219,6 +219,7 @@ function MessageBubble({ msg }) {
               fontSize: 13,
               color: isMine ? '#ffffff' : '#e8eaf6',
               wordBreak: 'break-word',
+              whiteSpace: 'pre-wrap',
               lineHeight: 1.5
             }}
           >
@@ -283,7 +284,8 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
   return (
     <Stack
       sx={{
-        minHeight: 'calc(100vh - 140px)',
+        height: '100%',
+        minHeight: 0,
         border: `1px solid ${alpha('#ffffff', 0.08)}`,
         borderRadius: 3,
         bgcolor: alpha('#0d1420', 0.45),
@@ -474,14 +476,13 @@ function UserList({ peers, myInfo, isLoading, refresh, unreadCounts, onSelectPee
   const totalOnline = peers.length + (myInfo ? 1 : 0)
 
   return (
-    <Stack sx={{ minHeight: 'calc(100vh - 140px)' }}>
+    <Stack sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Stack
         direction="row"
         alignItems="center"
         justifyContent="space-between"
-        px={2}
-        pt={2}
+        pt={1.5}
         pb={1}
         flexShrink={0}
       >
@@ -525,6 +526,7 @@ function UserList({ peers, myInfo, isLoading, refresh, unreadCounts, onSelectPee
           fontFamily: '"IBM Plex Mono", monospace',
           fontSize: 11,
           color: alpha('#e8eaf6', 0.28),
+          mb: 0.5,
           pb: 2
         }}
       >
@@ -679,14 +681,18 @@ export const MessengerPage = () => {
   return (
     <Box
       sx={{
-        minHeight: 'calc(100vh - 40px)',
+        height: 'calc(100vh - 40px)',
+        overflow: 'hidden',
         bgcolor: '#0f1117',
         backgroundImage: `
           radial-gradient(ellipse at 15% 15%, ${alpha('#1a73e8', 0.07)} 0%, transparent 50%),
           radial-gradient(ellipse at 85% 85%, ${alpha('#9c27b0', 0.04)} 0%, transparent 50%)
         `,
-        px: { xs: 2, sm: 3, md: 4 },
-        py: { xs: 2, sm: 3, md: 3.5 },
+        px: { xs: 2, sm: 3.5, md: 4 },
+        pt: { xs: 2, sm: 3, md: 3 },
+        pb: 0,
+        display: 'flex',
+        flexDirection: 'column',
         // Keyframe spin untuk tombol refresh
         '@keyframes spin': {
           from: { transform: 'rotate(0deg)' },
@@ -697,8 +703,12 @@ export const MessengerPage = () => {
       <Box
         sx={{
           width: '100%',
-          maxWidth: 920,
-          mx: 'auto'
+          maxWidth: 1200,
+          mx: 'auto',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column'
         }}
       >
         {activeRoom ? (

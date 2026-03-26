@@ -19,25 +19,30 @@ import {
   AppsRounded,
   SettingsRounded,
   ForumRounded,
+  CleaningServicesRounded,
   ChevronRightRounded,
   ChevronLeftRounded
 } from '@mui/icons-material'
+import { useSidebarBadges } from '@renderer/context/sidebarBadge'
 
 const getRouteMeta = (route, index) => {
   const path = route.path ?? '/'
 
   if (path === '/') {
-    return {
-      icon: HomeRounded,
-      label: 'Home',
-      indicator: true
-    }
+    return { icon: HomeRounded, label: 'Home' }
+  }
+
+  if (path === '/messenger') {
+    return { icon: ForumRounded, label: 'Messenger' }
+  }
+
+  if (path === '/project-cleaner') {
+    return { icon: CleaningServicesRounded, label: 'Project Cleaner' }
   }
 
   return {
     icon: index % 2 === 0 ? AppsRounded : ForumRounded,
-    label: path.replace('/', '') || 'Menu',
-    indicator: false
+    label: path.replace('/', '') || 'Menu'
   }
 }
 
@@ -46,6 +51,7 @@ export const Sidebar = ({ routes = [] }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(true)
+  const badges = useSidebarBadges()
 
   const menuItems = useMemo(() => {
     return routes
@@ -133,12 +139,22 @@ export const Sidebar = ({ routes = [] }) => {
                 }}
               >
                 <ListItemIcon sx={{ color: 'inherit' }}>
-                  {item.indicator ? (
+                  {item.path === '/messenger' && badges.messenger > 0 ? (
                     <Badge
-                      color="success"
-                      overlap="circular"
-                      variant="dot"
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      badgeContent={badges.messenger}
+                      max={99}
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          bgcolor: '#e05c5c',
+                          color: '#fff',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          minWidth: 16,
+                          height: 16,
+                          padding: '0 4px',
+                          fontFamily: '"IBM Plex Mono", monospace'
+                        }
+                      }}
                     >
                       <Icon fontSize="medium" />
                     </Badge>

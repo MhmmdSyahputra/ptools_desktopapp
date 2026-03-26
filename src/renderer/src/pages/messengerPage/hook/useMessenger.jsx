@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNotifier } from '@renderer/components/core/notificationProvider'
+import { useSetSidebarBadge } from '@renderer/context/sidebarBadge'
 
 /**
  * Hook utama untuk Messenger:
@@ -8,6 +10,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
  * - Badge notif pesan belum dibaca
  */
 export function UseMessenger() {
+  const notifier = useNotifier()
+  const setSidebarBadge = useSetSidebarBadge()
   const [peers, setPeers] = useState([])
   const [myInfo, setMyInfo] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -22,7 +26,16 @@ export function UseMessenger() {
   const [unreadCounts, setUnreadCounts] = useState({})
 
   const activeRoomRef = useRef(null)
+  const notifierRef = useRef(notifier)
+  const knownPeersRef = useRef(new Set())
+  const hasPeerSnapshotRef = useRef(false)
   activeRoomRef.current = activeRoom
+  notifierRef.current = notifier
+
+  // Reset sidebar badge saat Messenger dibuka
+  useEffect(() => {
+    if (setSidebarBadge) setSidebarBadge((prev) => ({ ...prev, messenger: 0 }))
+  }, [setSidebarBadge])
 
   // ─── Load peers awal ───────────────────────────────────────────────────────
   const refresh = useCallback(async () => {
@@ -44,12 +57,49 @@ export function UseMessenger() {
     refresh()
 
     const cleanupPeers = window.api.discovery.onPeersUpdated((updatedPeers) => {
+      const nextPeerIps = new Set(updatedPeers.map((peer) => peer.ip))
+
+      // Notify only for peers that appear after the first snapshot (avoid noise at startup).
+      if (hasPeerSnapshotRef.current) {
+        updatedPeers.forEach((peer) => {
+          const isNewOnlinePeer = !knownPeersRef.current.has(peer.ip)
+          if (!isNewOnlinePeer) return
+
+          notifierRef.current.show({
+            message: 'Device online',
+            description: `${peer.username} (${peer.ip}) telah online`,
+            severity: 'info'
+          })
+
+          window.api.windowNotification.show({
+            title: 'PTools Messenger',
+            body: `${peer.username} (${peer.ip}) is now online`,
+            silent: false
+          })
+        })
+      }
+
+      knownPeersRef.current = nextPeerIps
+      hasPeerSnapshotRef.current = true
       setPeers(updatedPeers)
     })
 
     // ─── Terima pesan masuk ────────────────────────────────────────────────
     const cleanupChat = window.api.chat.onMessageReceived((msg) => {
       const peerIp = msg.fromIp
+      const senderLabel = msg.from || msg.username || peerIp
+
+      notifierRef.current.show({
+        message: 'Pesan baru',
+        description: `${senderLabel}: ${msg.text || ''}`,
+        severity: 'info'
+      })
+
+      window.api.windowNotification.show({
+        title: `Pesan baru dari ${senderLabel}`,
+        body: msg.text || '(pesan kosong)',
+        silent: false
+      })
 
       setChatMessages((prev) => ({
         ...prev,

@@ -17,6 +17,10 @@ const api = {
     showInExplorer: (folderPath) => ipcRenderer.invoke('scanner:show-in-explorer', folderPath)
   },
 
+  windowNotification: {
+    show: async (payload) => ipcRenderer.invoke('window:show-notification', payload)
+  },
+
   // ─── Discovery ─────────────────────────────────────────────────────────────
   discovery: {
     getPeers: () => ipcRenderer.invoke('discovery:get-peers'),

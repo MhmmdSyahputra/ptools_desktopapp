@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, BrowserWindow, Notification } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { readFileSync } from 'fs'
@@ -29,5 +29,38 @@ export function registerAppIpc() {
       : join(process.resourcesPath, 'resources/assets')
 
     return assetsPathConfig
+  })
+
+  ipcMain.handle('window:show-notification', async (event, payload = {}) => {
+    try {
+      const title = payload.title || 'Ptools Notification'
+      const body = payload.body || ''
+
+      if (!Notification.isSupported()) {
+        return { status: false, message: 'Notification is not supported on this platform' }
+      }
+
+      const notification = new Notification({
+        title,
+        body,
+        silent: Boolean(payload.silent)
+      })
+
+      notification.on('click', () => {
+        const window = BrowserWindow.fromWebContents(event.sender)
+        if (!window || window.isDestroyed()) return
+        if (window.isMinimized()) {
+          window.restore()
+        }
+        window.show()
+        window.focus()
+      })
+
+      notification.show()
+      return { status: true }
+    } catch (error) {
+      console.error('Failed to show desktop notification:', error)
+      return { status: false, message: error.message || 'Failed to show notification' }
+    }
   })
 }

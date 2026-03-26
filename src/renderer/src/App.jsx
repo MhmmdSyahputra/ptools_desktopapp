@@ -4,6 +4,8 @@ import { sidebarRoutes } from './routes/sidebarRoutes'
 import { Box } from '@mui/material'
 import { TitleBar } from './components/core/titlebar'
 import { Sidebar } from './components/core/sidebar'
+import { NotificationProvider } from './components/core/notificationProvider'
+import { SidebarBadgeProvider } from './context/sidebarBadge'
 
 // eslint-disable-next-line react/prop-types
 const SidebarLayout = ({ children }) => {
@@ -17,7 +19,8 @@ const SidebarLayout = ({ children }) => {
         sx={{
           flexGrow: 1,
           bgcolor: '#0f1117',
-          overflow: 'auto',
+          overflow: 'hidden',
+          height: 'calc(100vh - 40px)',
           mt: '40px'
         }}
       >
@@ -43,13 +46,17 @@ const renderRoute = (route, key) => {
 
 const App = () => {
   return (
-    <Router>
-      <Routes>
-        {appRoutes.filter((r) => r.active).map((route, i) => renderRoute(route, i))}
-        {/* 404 */}
-        <Route path="*" element={<p>not found</p>} />
-      </Routes>
-    </Router>
+    <NotificationProvider>
+      <SidebarBadgeProvider>
+        <Router>
+          <Routes>
+            {appRoutes.filter((r) => r.active).map((route, i) => renderRoute(route, i))}
+            {/* 404 */}
+            <Route path="*" element={<p>not found</p>} />
+          </Routes>
+        </Router>
+      </SidebarBadgeProvider>
+    </NotificationProvider>
   )
 }
 

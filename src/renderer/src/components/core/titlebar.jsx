@@ -18,10 +18,12 @@ import {
 import { Minimize, CropSquare, Close, Settings, Warning } from '@mui/icons-material'
 import { Update as UpdateIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
+import AppLogo from '@renderer/assets/electron.svg'
 
 // eslint-disable-next-line react/prop-types
 export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
   const navigate = useNavigate()
+  const appTitle = 'PTools Desktop'
   const [deviceId, setDeviceId] = useState('')
   const [deviceName, setDeviceName] = useState('')
   const [deviceBrand, setDeviceBrand] = useState('')
@@ -214,6 +216,45 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
         }}
       >
         <Toolbar variant="dense" sx={{ minHeight: 40, px: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              minWidth: 0,
+              pr: 1.5,
+              borderRight: '1px solid rgba(255,255,255,0.08)'
+            }}
+          >
+            <Box
+              component="img"
+              src={AppLogo}
+              alt="PTools"
+              sx={{
+                width: 18,
+                height: 18,
+                objectFit: 'contain',
+                opacity: 0.95,
+                filter: 'drop-shadow(0 0 8px rgba(26,115,232,0.35))'
+              }}
+            />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  color: '#f5f8ff',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: 0.35,
+                  fontFamily: '"IBM Plex Mono", monospace',
+                  lineHeight: 1.15,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {appTitle}
+              </Typography>
+            </Box>
+          </Box>
+
           <Box flex={1} />
 
           {/* RIGHT - User Profile & Window Controls */}
