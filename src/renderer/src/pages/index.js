@@ -1,3 +1,4 @@
 import { HomePage } from './homePage'
+import { MessengerPage } from './messengerPage'
 
-export { HomePage }
+export { HomePage, MessengerPage }

@@ -17,64 +17,68 @@ const api = {
     showInExplorer: (folderPath) => ipcRenderer.invoke('scanner:show-in-explorer', folderPath)
   },
 
-  getMyConfig: async () => {
-    return await ipcRenderer.invoke('get-my-config')
+  // ─── Discovery ─────────────────────────────────────────────────────────────
+  discovery: {
+    getPeers: () => ipcRenderer.invoke('discovery:get-peers'),
+    getMyInfo: () => ipcRenderer.invoke('discovery:get-my-info'),
+    onPeersUpdated: (callback) => {
+      const handler = (_event, peers) => callback(peers)
+      ipcRenderer.on('discovery:peers-updated', handler)
+      return () => ipcRenderer.removeListener('discovery:peers-updated', handler)
+    }
   },
 
-  getImage: async () => {
-    return await ipcRenderer.invoke('get-assets-path')
+  // ─── Chat ──────────────────────────────────────────────────────────────────
+  chat: {
+    // Ambil history chat dengan peer tertentu
+    getHistory: (peerIp) => ipcRenderer.invoke('chat:get-history', peerIp),
+
+    // Kirim pesan ke peer
+    sendMessage: (targetIp, text) => ipcRenderer.invoke('chat:send-message', { targetIp, text }),
+
+    // Listen pesan masuk (dari siapapun), return cleanup fn
+    onMessageReceived: (callback) => {
+      const handler = (_event, msg) => callback(msg)
+      ipcRenderer.on('chat:message-received', handler)
+      return () => ipcRenderer.removeListener('chat:message-received', handler)
+    }
   },
+
+  getMyConfig: async () => await ipcRenderer.invoke('get-my-config'),
+  getImage: async () => await ipcRenderer.invoke('get-assets-path'),
 
   printOrderReceipt(data) {
     ipcRenderer.send('print-order-receipt', data)
   },
 
-  // Auto updater
-  checkForUpdates: () => {
-    ipcRenderer.send('check-for-updates')
-  },
+  checkForUpdates: () => ipcRenderer.send('check-for-updates'),
 
   onUpdateNotification: (callback) => {
     const handler = (_event, message, severity) => callback(message, severity)
     ipcRenderer.on('update:notification', handler)
-    return () => {
-      ipcRenderer.removeListener('update:notification', handler)
-    }
+    return () => ipcRenderer.removeListener('update:notification', handler)
   },
 
   onUpdateProgress: (callback) => {
     const handler = (_event, percent) => callback(percent)
     ipcRenderer.on('update:download-progress', handler)
-    return () => {
-      ipcRenderer.removeListener('update:download-progress', handler)
-    }
+    return () => ipcRenderer.removeListener('update:download-progress', handler)
   },
 
-  // Network connectivity - checked from main process
-  checkNetworkStatus: async () => {
-    return await ipcRenderer.invoke('check-network-status')
-  },
+  checkNetworkStatus: async () => await ipcRenderer.invoke('check-network-status'),
 
   onNetworkStatusChanged: (callback) => {
     const handler = (_event, isOnline) => callback(isOnline)
     ipcRenderer.on('network-status-changed', handler)
-    // Return cleanup function
-    return () => {
-      ipcRenderer.removeListener('network-status-changed', handler)
-    }
+    return () => ipcRenderer.removeListener('network-status-changed', handler)
   },
 
-  printThermalLan: async (data) => {
-    return await ipcRenderer.invoke('print-thermal-lan', data)
-  },
+  printThermalLan: async (data) => await ipcRenderer.invoke('print-thermal-lan', data),
 
-  testThermalPrinter: async ({ printerIp, printerPort = 9100 }) => {
-    return await ipcRenderer.invoke('test-thermal-printer', { printerIp, printerPort })
-  },
+  testThermalPrinter: async ({ printerIp, printerPort = 9100 }) =>
+    await ipcRenderer.invoke('test-thermal-printer', { printerIp, printerPort }),
 
-  getAppVersion: async () => {
-    return await ipcRenderer.invoke('get-app-version')
-  }
+  getAppVersion: async () => await ipcRenderer.invoke('get-app-version')
 }
 
 if (process.contextIsolated) {

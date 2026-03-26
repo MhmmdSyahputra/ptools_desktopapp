@@ -1,29 +1,24 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom'
 import { appRoutes } from './routes/appRoutes'
+import { sidebarRoutes } from './routes/sidebarRoutes'
 import { Box } from '@mui/material'
 import { TitleBar } from './components/core/titlebar'
+import { Sidebar } from './components/core/sidebar'
 
 // eslint-disable-next-line react/prop-types
 const SidebarLayout = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: '#0f1318' }}>
       <TitleBar showUpdateButton={true} />
-
-      {/* <Sidebar
-        logo={`${assetsPathConfig}\\images\\logo.png`}
-        onLogout={handleLogout}
-        sidebarService={sidebarService}
-        appRoutes={appRoutes}
-      /> */}
+      <Sidebar routes={sidebarRoutes} />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          // p: 3,
-          bgcolor: 'grey.50',
+          bgcolor: '#0f1117',
           overflow: 'auto',
-          mt: '30px'
+          mt: '40px'
         }}
       >
         {children}

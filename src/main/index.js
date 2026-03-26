@@ -12,12 +12,18 @@ import {
 import { setupAutoUpdater } from './services/updater.service.js'
 import { logAppToServer } from './services/logger.service.js'
 import { registerScannerIpc } from './ipc/scanner.ipc.js'
+import {
+  startDiscovery,
+  stopDiscovery,
+  registerDiscoveryIpc
+} from './services/discovery.service.js'
 
 registerScannerIpc()
 registerAppIpc()
 registerDeviceIpc()
 registerWindowIpc()
 registerNetworkIpc()
+registerDiscoveryIpc() // ← tambah ini
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
@@ -32,6 +38,7 @@ app.whenReady().then(() => {
 
   logAppToServer()
   startNetworkMonitoring()
+  startDiscovery() // ← tambah ini
   setupAutoUpdater()
 
   app.on('activate', function () {
@@ -42,6 +49,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   stopNetworkMonitoring()
+  stopDiscovery() // ← tambah ini
   if (process.platform !== 'darwin') {
     app.quit()
   }
