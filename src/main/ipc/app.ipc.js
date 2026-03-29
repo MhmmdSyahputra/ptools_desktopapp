@@ -1,10 +1,18 @@
-import { ipcMain, BrowserWindow, Notification } from 'electron'
+import { ipcMain, BrowserWindow, Notification, shell } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import { app } from 'electron'
 
 export function registerAppIpc() {
+  const playMainNotificationCue = () => {
+    try {
+      shell.beep()
+    } catch (error) {
+      console.error('Failed to play main notification cue:', error)
+    }
+  }
+
   ipcMain.handle('get-app-version', () => {
     return app.getVersion()
   })
@@ -31,6 +39,14 @@ export function registerAppIpc() {
     return assetsPathConfig
   })
 
+  ipcMain.handle('get-notification-sound-path', async () => {
+    const soundPath = is.dev
+      ? join(__dirname, '../../resources/assets')
+      : join(process.resourcesPath, 'resources/assets')
+
+    return soundPath
+  })
+
   ipcMain.handle('window:show-notification', async (event, payload = {}) => {
     try {
       const title = payload.title || 'Ptools Notification'
@@ -45,6 +61,11 @@ export function registerAppIpc() {
         body,
         silent: Boolean(payload.silent)
       })
+
+      // Ensure system cue is triggered from main process as well.
+      if (!payload.silent) {
+        playMainNotificationCue()
+      }
 
       notification.on('click', () => {
         const window = BrowserWindow.fromWebContents(event.sender)

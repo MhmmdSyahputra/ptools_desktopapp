@@ -71,7 +71,7 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [navigate])
 
   const getDeviceUuid = async () => {
     try {
@@ -342,7 +342,10 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            minWidth: 400
+            minWidth: 420,
+            bgcolor: '#151b26',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.55)'
           }
         }}
       >
@@ -350,8 +353,8 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
           <Box display="flex" alignItems="center" gap={2}>
             <Avatar
               sx={{
-                bgcolor: 'warning.light',
-                color: 'warning.main',
+                bgcolor: 'rgba(255,152,0,0.22)',
+                color: '#ffb74d',
                 width: 48,
                 height: 48
               }}
@@ -359,10 +362,10 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
               <Warning />
             </Avatar>
             <Box>
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: '#f0f4ff' }}>
                 Close Application?
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: 'rgba(232,234,246,0.5)' }}>
                 Are you sure you want to exit?
               </Typography>
             </Box>
@@ -370,7 +373,7 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
         </DialogTitle>
 
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'rgba(232,234,246,0.72)', lineHeight: 1.7 }}>
             All unsaved changes will be lost. Make sure you have saved your work before closing the
             application.
           </Typography>
@@ -382,11 +385,11 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
             variant="outlined"
             sx={{
               textTransform: 'none',
-              borderColor: 'grey.300',
-              color: 'text.primary',
+              borderColor: 'rgba(255,255,255,0.18)',
+              color: '#dbe3f3',
               '&:hover': {
-                borderColor: 'grey.400',
-                bgcolor: 'grey.50'
+                borderColor: 'rgba(255,255,255,0.3)',
+                bgcolor: 'rgba(255,255,255,0.06)'
               }
             }}
           >
@@ -398,7 +401,9 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
             color="error"
             sx={{
               textTransform: 'none',
-              minWidth: 120
+              minWidth: 120,
+              bgcolor: '#c53d34',
+              '&:hover': { bgcolor: '#a83129' }
             }}
           >
             Close App
@@ -443,7 +448,13 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            minWidth: 400
+            minWidth: 520,
+            maxWidth: 720,
+            width: '90vw',
+            maxHeight: '82vh',
+            bgcolor: '#151b26',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.55)'
           }
         }}
       >
@@ -451,8 +462,8 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
           <Box display="flex" alignItems="center" gap={2}>
             <Avatar
               sx={{
-                bgcolor: 'info.light',
-                color: 'info.main',
+                bgcolor: 'rgba(66,165,245,0.22)',
+                color: '#64b5f6',
                 width: 48,
                 height: 48
               }}
@@ -460,20 +471,31 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
               <Settings />
             </Avatar>
             <Box>
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: '#f0f4ff' }}>
                 Informasi Perangkat
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: 'rgba(232,234,246,0.5)' }}>
                 Detail identifikasi perangkat ini
               </Typography>
             </Box>
           </Box>
         </DialogTitle>
 
-        <DialogContent>
+        <DialogContent
+          sx={{
+            '&::-webkit-scrollbar': { width: 8 },
+            '&::-webkit-scrollbar-thumb': {
+              borderRadius: 99,
+              bgcolor: 'rgba(255,255,255,0.16)'
+            }
+          }}
+        >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'rgba(232,234,246,0.45)', fontWeight: 700, letterSpacing: 0.8 }}
+              >
                 DEVICE ID
               </Typography>
               <Typography
@@ -481,9 +503,11 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
                 sx={{
                   mt: 0.5,
                   p: 1.5,
-                  bgcolor: 'grey.100',
+                  bgcolor: 'rgba(255,255,255,0.05)',
                   borderRadius: 2,
                   fontFamily: 'monospace',
+                  color: '#dde5f5',
+                  border: '1px solid rgba(255,255,255,0.08)',
                   wordBreak: 'break-all'
                 }}
               >
@@ -491,7 +515,10 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'rgba(232,234,246,0.45)', fontWeight: 700, letterSpacing: 0.8 }}
+              >
                 DEVICE NAME
               </Typography>
               <Typography
@@ -499,16 +526,21 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
                 sx={{
                   mt: 0.5,
                   p: 1.5,
-                  bgcolor: 'grey.100',
+                  bgcolor: 'rgba(255,255,255,0.05)',
                   borderRadius: 2,
-                  fontFamily: 'monospace'
+                  fontFamily: 'monospace',
+                  color: '#dde5f5',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
               >
                 {deviceName || '-'}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'rgba(232,234,246,0.45)', fontWeight: 700, letterSpacing: 0.8 }}
+              >
                 DEVICE BRAND
               </Typography>
               <Typography
@@ -516,16 +548,21 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
                 sx={{
                   mt: 0.5,
                   p: 1.5,
-                  bgcolor: 'grey.100',
+                  bgcolor: 'rgba(255,255,255,0.05)',
                   borderRadius: 2,
-                  fontFamily: 'monospace'
+                  fontFamily: 'monospace',
+                  color: '#dde5f5',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
               >
                 {deviceBrand || '-'}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'rgba(232,234,246,0.45)', fontWeight: 700, letterSpacing: 0.8 }}
+              >
                 IP ADDRESS
               </Typography>
               <Typography
@@ -533,16 +570,21 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
                 sx={{
                   mt: 0.5,
                   p: 1.5,
-                  bgcolor: 'grey.100',
+                  bgcolor: 'rgba(255,255,255,0.05)',
                   borderRadius: 2,
-                  fontFamily: 'monospace'
+                  fontFamily: 'monospace',
+                  color: '#dde5f5',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
               >
                 {deviceInfo?.ipAddress || '-'}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'rgba(232,234,246,0.45)', fontWeight: 700, letterSpacing: 0.8 }}
+              >
                 MAC ADDRESS
               </Typography>
               <Typography
@@ -550,9 +592,11 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
                 sx={{
                   mt: 0.5,
                   p: 1.5,
-                  bgcolor: 'grey.100',
+                  bgcolor: 'rgba(255,255,255,0.05)',
                   borderRadius: 2,
-                  fontFamily: 'monospace'
+                  fontFamily: 'monospace',
+                  color: '#dde5f5',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
               >
                 {deviceInfo?.macAddress || '-'}
@@ -565,7 +609,12 @@ export const TitleBar = ({ theme = 'dark', showUpdateButton = false }) => {
           <Button
             onClick={() => setOpenDeviceDialog(false)}
             variant="contained"
-            sx={{ textTransform: 'none' }}
+            sx={{
+              textTransform: 'none',
+              bgcolor: '#1a73e8',
+              minWidth: 84,
+              '&:hover': { bgcolor: '#1557b0' }
+            }}
           >
             Tutup
           </Button>

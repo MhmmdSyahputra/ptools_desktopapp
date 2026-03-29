@@ -40,16 +40,38 @@ const api = {
     // Kirim pesan ke peer
     sendMessage: (targetIp, text) => ipcRenderer.invoke('chat:send-message', { targetIp, text }),
 
+    // Kirim tawaran file (belum transfer data sampai penerima accept)
+    sendFileOffer: (targetIp, payload) =>
+      ipcRenderer.invoke('chat:send-file-offer', { targetIp, ...payload }),
+
+    // Buka native file picker agar dapat absolute path di Electron
+    selectFiles: () => ipcRenderer.invoke('chat:select-files'),
+
+    // Penerima setuju menerima file
+    acceptFileOffer: (peerIp, fileId, fileName) =>
+      ipcRenderer.invoke('chat:accept-file-offer', { peerIp, fileId, fileName }),
+
+    // Penerima menolak file
+    rejectFileOffer: (peerIp, fileId) =>
+      ipcRenderer.invoke('chat:reject-file-offer', { peerIp, fileId }),
+
     // Listen pesan masuk (dari siapapun), return cleanup fn
     onMessageReceived: (callback) => {
       const handler = (_event, msg) => callback(msg)
       ipcRenderer.on('chat:message-received', handler)
       return () => ipcRenderer.removeListener('chat:message-received', handler)
+    },
+
+    onFileOfferUpdated: (callback) => {
+      const handler = (_event, payload) => callback(payload)
+      ipcRenderer.on('chat:file-offer-updated', handler)
+      return () => ipcRenderer.removeListener('chat:file-offer-updated', handler)
     }
   },
 
   getMyConfig: async () => await ipcRenderer.invoke('get-my-config'),
   getImage: async () => await ipcRenderer.invoke('get-assets-path'),
+  getNotificationSoundPath: async () => await ipcRenderer.invoke('get-notification-sound-path'),
 
   printOrderReceipt(data) {
     ipcRenderer.send('print-order-receipt', data)

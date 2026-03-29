@@ -29,8 +29,68 @@ export function UseMessenger() {
   const notifierRef = useRef(notifier)
   const knownPeersRef = useRef(new Set())
   const hasPeerSnapshotRef = useRef(false)
+  const notificationAudioRef = useRef(null)
   activeRoomRef.current = activeRoom
   notifierRef.current = notifier
+
+  const playNotificationSound = useCallback(() => {
+    const audio = notificationAudioRef.current
+    if (!audio) return
+
+    audio.currentTime = 0
+    const playPromise = audio.play()
+    if (playPromise?.catch) {
+      playPromise.catch(() => {
+        /* ignore autoplay/playback errors */
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const loadSound = async () => {
+      try {
+        const rawPath = await window.api.getNotificationSoundPath()
+        if (!rawPath || isCancelled) return
+
+        const src = `${rawPath}\\sounds\\notif.mp3`
+
+        const audio = new Audio(src)
+        audio.preload = 'auto'
+        audio.volume = 0.75
+        notificationAudioRef.current = audio
+      } catch (err) {
+        console.error('[UseMessenger] Failed to load notification sound:', err)
+      }
+    }
+
+    loadSound()
+
+    return () => {
+      isCancelled = true
+      if (notificationAudioRef.current) {
+        notificationAudioRef.current.pause()
+        notificationAudioRef.current = null
+      }
+    }
+  }, [])
+
+  const appendMessage = useCallback((peerIp, msg) => {
+    setChatMessages((prev) => ({
+      ...prev,
+      [peerIp]: [...(prev[peerIp] || []), msg]
+    }))
+  }, [])
+
+  const updateFileStatus = useCallback((peerIp, fileId, nextStatus, extra = {}) => {
+    setChatMessages((prev) => ({
+      ...prev,
+      [peerIp]: (prev[peerIp] || []).map((msg) =>
+        msg.id === fileId ? { ...msg, fileStatus: nextStatus, ...extra } : msg
+      )
+    }))
+  }, [])
 
   // Reset sidebar badge saat Messenger dibuka
   useEffect(() => {
@@ -70,6 +130,7 @@ export function UseMessenger() {
             description: `${peer.username} (${peer.ip}) telah online`,
             severity: 'info'
           })
+          playNotificationSound()
 
           window.api.windowNotification.show({
             title: 'PTools Messenger',
@@ -89,22 +150,35 @@ export function UseMessenger() {
       const peerIp = msg.fromIp
       const senderLabel = msg.from || msg.username || peerIp
 
-      notifierRef.current.show({
-        message: 'Pesan baru',
-        description: `${senderLabel}: ${msg.text || ''}`,
-        severity: 'info'
-      })
+      if (msg.type === 'file-offer') {
+        notifierRef.current.show({
+          message: 'Permintaan file masuk',
+          description: `${senderLabel} mengirim ${msg.fileName}`,
+          severity: 'info'
+        })
+        playNotificationSound()
 
-      window.api.windowNotification.show({
-        title: `Pesan baru dari ${senderLabel}`,
-        body: msg.text || '(pesan kosong)',
-        silent: false
-      })
+        window.api.windowNotification.show({
+          title: `File dari ${senderLabel}`,
+          body: msg.fileName || 'Lampiran baru',
+          silent: false
+        })
+      } else {
+        notifierRef.current.show({
+          message: 'Pesan baru',
+          description: `${senderLabel}: ${msg.text || ''}`,
+          severity: 'info'
+        })
+        playNotificationSound()
 
-      setChatMessages((prev) => ({
-        ...prev,
-        [peerIp]: [...(prev[peerIp] || []), msg]
-      }))
+        window.api.windowNotification.show({
+          title: `Pesan baru dari ${senderLabel}`,
+          body: msg.text || '(pesan kosong)',
+          silent: false
+        })
+      }
+
+      appendMessage(peerIp, msg)
 
       // Tambah unread jika bukan room yang aktif
       if (activeRoomRef.current?.ip !== peerIp) {
@@ -115,11 +189,19 @@ export function UseMessenger() {
       }
     })
 
+    const cleanupFileStatus = window.api.chat.onFileOfferUpdated((payload) => {
+      updateFileStatus(payload.peerIp, payload.fileId, payload.fileStatus, {
+        localPath: payload.localPath,
+        error: payload.error
+      })
+    })
+
     return () => {
       cleanupPeers()
       cleanupChat()
+      cleanupFileStatus()
     }
-  }, [refresh])
+  }, [appendMessage, playNotificationSound, refresh, updateFileStatus])
 
   // ─── Buka room chat ────────────────────────────────────────────────────────
   const openRoom = useCallback(async (peer) => {
@@ -147,17 +229,50 @@ export function UseMessenger() {
   }, [])
 
   // ─── Kirim pesan ──────────────────────────────────────────────────────────
-  const sendMessage = useCallback(async (targetIp, text) => {
-    if (!text.trim()) return { success: false }
-    const result = await window.api.chat.sendMessage(targetIp, text.trim())
-    if (result.success) {
-      setChatMessages((prev) => ({
-        ...prev,
-        [targetIp]: [...(prev[targetIp] || []), result.message]
-      }))
-    }
-    return result
-  }, [])
+  const sendMessage = useCallback(
+    async (targetIp, text) => {
+      if (!text.trim()) return { success: false }
+      const result = await window.api.chat.sendMessage(targetIp, text.trim())
+      if (result.success) {
+        appendMessage(targetIp, result.message)
+      }
+      return result
+    },
+    [appendMessage]
+  )
+
+  const sendFileOffer = useCallback(
+    async (targetIp, payload) => {
+      const result = await window.api.chat.sendFileOffer(targetIp, payload)
+      if (result.success) {
+        appendMessage(targetIp, result.message)
+      }
+      return result
+    },
+    [appendMessage]
+  )
+
+  const acceptFileOffer = useCallback(
+    async (peerIp, fileId, fileName) => {
+      const result = await window.api.chat.acceptFileOffer(peerIp, fileId, fileName)
+      if (result.success) {
+        updateFileStatus(peerIp, fileId, 'accepting')
+      }
+      return result
+    },
+    [updateFileStatus]
+  )
+
+  const rejectFileOffer = useCallback(
+    async (peerIp, fileId) => {
+      const result = await window.api.chat.rejectFileOffer(peerIp, fileId)
+      if (result.success) {
+        updateFileStatus(peerIp, fileId, 'rejected')
+      }
+      return result
+    },
+    [updateFileStatus]
+  )
 
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0)
 
@@ -171,6 +286,9 @@ export function UseMessenger() {
     closeRoom,
     chatMessages,
     sendMessage,
+    sendFileOffer,
+    acceptFileOffer,
+    rejectFileOffer,
     unreadCounts,
     totalUnread
   }

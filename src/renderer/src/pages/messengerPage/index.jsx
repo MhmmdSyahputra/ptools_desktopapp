@@ -9,9 +9,21 @@ import {
   Tooltip,
   IconButton,
   TextField,
-  Chip
+  Chip,
+  Button
 } from '@mui/material'
-import { Message, Circle, Refresh, Computer, ArrowBack, Send } from '@mui/icons-material'
+import {
+  Message,
+  Circle,
+  Refresh,
+  Computer,
+  ArrowBack,
+  Send,
+  AttachFile,
+  Description,
+  CloseRounded,
+  CheckRounded
+} from '@mui/icons-material'
 import { UseMessenger } from './hook/useMessenger'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -25,6 +37,13 @@ function getPlatformLabel(platform) {
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatFileSize(size) {
+  if (!size) return '0 B'
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
 // ─── Avatar inisial ────────────────────────────────────────────────────────────
@@ -171,8 +190,23 @@ function UserCard({ user, isMe = false, unread = 0, onClick }) {
 }
 
 // ─── Bubble pesan ──────────────────────────────────────────────────────────────
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onAcceptFile, onRejectFile }) {
   const isMine = msg.isMine
+  const isFileOffer = msg.type === 'file-offer'
+
+  const canAccept = !isMine && msg.fileStatus === 'waiting'
+
+  const statusLabelMap = {
+    waiting: 'Menunggu persetujuan',
+    accepting: 'Menyiapkan download...',
+    sending: 'Mengirim file...',
+    sent: 'Menunggu konfirmasi download',
+    downloaded: isMine ? 'Sudah diunduh penerima' : 'Download selesai',
+    rejected: 'Ditolak',
+    failed: 'Gagal'
+  }
+
+  const statusLabel = statusLabelMap[msg.fileStatus] || 'Proses file'
 
   return (
     <Stack
@@ -200,32 +234,137 @@ function MessageBubble({ msg }) {
             {msg.from}
           </Typography>
         )}
-        <Box
-          sx={{
-            px: 1.6,
-            py: 1,
-            borderRadius: isMine ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-            bgcolor: isMine ? '#1a73e8' : alpha('#ffffff', 0.07),
-            border: `1px solid ${isMine ? 'transparent' : alpha('#ffffff', 0.1)}`,
-            maxWidth: { xs: 280, sm: 360 },
-            boxShadow: isMine
-              ? `0 10px 24px ${alpha('#1a73e8', 0.24)}`
-              : `0 8px 20px ${alpha('#02040a', 0.28)}`
-          }}
-        >
-          <Typography
+        {isFileOffer ? (
+          <Box
             sx={{
-              fontFamily: '"IBM Plex Mono", monospace',
-              fontSize: 13,
-              color: isMine ? '#ffffff' : '#e8eaf6',
-              wordBreak: 'break-word',
-              whiteSpace: 'pre-wrap',
-              lineHeight: 1.5
+              px: 1.4,
+              py: 1.2,
+              borderRadius: isMine ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+              bgcolor: isMine ? alpha('#1a73e8', 0.24) : alpha('#ffffff', 0.07),
+              border: `1px solid ${isMine ? alpha('#1a73e8', 0.35) : alpha('#ffffff', 0.1)}`,
+              maxWidth: { xs: 300, sm: 380 },
+              boxShadow: `0 8px 20px ${alpha('#02040a', 0.24)}`
             }}
           >
-            {msg.text}
-          </Typography>
-        </Box>
+            <Stack direction="row" alignItems="flex-start" gap={1.1}>
+              <Description sx={{ fontSize: 17, color: isMine ? '#90caf9' : '#81d4fa', mt: 0.1 }} />
+              <Box flex={1} minWidth={0}>
+                <Typography
+                  sx={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    fontSize: 12.5,
+                    color: '#e8eaf6',
+                    fontWeight: 600,
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {msg.fileName}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    fontSize: 10,
+                    color: alpha('#e8eaf6', 0.5),
+                    mt: 0.4
+                  }}
+                >
+                  {formatFileSize(msg.fileSize)} • {statusLabel}
+                </Typography>
+                {msg.localPath && !isMine && (
+                  <Typography
+                    sx={{
+                      fontFamily: '"IBM Plex Mono", monospace',
+                      fontSize: 10,
+                      color: alpha('#8bc34a', 0.9),
+                      mt: 0.45,
+                      wordBreak: 'break-all'
+                    }}
+                  >
+                    Tersimpan: {msg.localPath}
+                  </Typography>
+                )}
+                {msg.error && (
+                  <Typography
+                    sx={{
+                      fontFamily: '"IBM Plex Mono", monospace',
+                      fontSize: 10,
+                      color: '#ef9a9a',
+                      mt: 0.45
+                    }}
+                  >
+                    {msg.error}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+
+            {canAccept && (
+              <Stack direction="row" gap={0.8} mt={1.1}>
+                <Button
+                  size="small"
+                  startIcon={<CheckRounded sx={{ fontSize: 14 }} />}
+                  onClick={() => onAcceptFile(msg)}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: 11,
+                    minWidth: 0,
+                    borderRadius: 1.5,
+                    bgcolor: alpha('#4caf50', 0.15),
+                    color: '#a5d6a7',
+                    border: `1px solid ${alpha('#4caf50', 0.28)}`,
+                    '&:hover': { bgcolor: alpha('#4caf50', 0.22) }
+                  }}
+                >
+                  Accept
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<CloseRounded sx={{ fontSize: 14 }} />}
+                  onClick={() => onRejectFile(msg)}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: 11,
+                    minWidth: 0,
+                    borderRadius: 1.5,
+                    bgcolor: alpha('#f44336', 0.12),
+                    color: '#ef9a9a',
+                    border: `1px solid ${alpha('#f44336', 0.22)}`,
+                    '&:hover': { bgcolor: alpha('#f44336', 0.2) }
+                  }}
+                >
+                  Reject
+                </Button>
+              </Stack>
+            )}
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              px: 1.6,
+              py: 1,
+              borderRadius: isMine ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+              bgcolor: isMine ? '#1a73e8' : alpha('#ffffff', 0.07),
+              border: `1px solid ${isMine ? 'transparent' : alpha('#ffffff', 0.1)}`,
+              maxWidth: { xs: 280, sm: 360 },
+              boxShadow: isMine
+                ? `0 10px 24px ${alpha('#1a73e8', 0.24)}`
+                : `0 8px 20px ${alpha('#02040a', 0.28)}`
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: '"IBM Plex Mono", monospace',
+                fontSize: 13,
+                color: isMine ? '#ffffff' : '#e8eaf6',
+                wordBreak: 'break-word',
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.5
+              }}
+            >
+              {msg.text}
+            </Typography>
+          </Box>
+        )}
         <Typography
           sx={{
             fontFamily: '"IBM Plex Mono", monospace',
@@ -244,10 +383,12 @@ function MessageBubble({ msg }) {
 }
 
 // ─── Room Chat ─────────────────────────────────────────────────────────────────
-function ChatRoom({ peer, messages = [], onBack, onSend }) {
+function ChatRoom({ peer, messages = [], onBack, onSend, onSendFile, onAcceptFile, onRejectFile }) {
+  const MAX_MESSAGE_CHARS = 4000
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [dragOver, setDragOver] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -263,6 +404,10 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
 
   const handleSend = useCallback(async () => {
     if (!text.trim() || sending) return
+    if (text.length > MAX_MESSAGE_CHARS) {
+      setError(`Pesan terlalu panjang (maks ${MAX_MESSAGE_CHARS} karakter)`)
+      return
+    }
     setSending(true)
     setError('')
     const result = await onSend(peer.ip, text)
@@ -278,6 +423,74 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+    }
+  }
+
+  const handleSendFiles = useCallback(
+    async (files) => {
+      const list = Array.from(files || [])
+      if (!list.length) return
+
+      setError('')
+      for (const file of list) {
+        const filePath = file.path || file.filePath
+        const fileName = file.name || 'file'
+        const fileSize = Number(file.size || 0)
+        const mimeType = file.type || 'application/octet-stream'
+
+        if (!filePath) {
+          setError('File path tidak ditemukan. Gunakan tombol attach untuk memilih file.')
+          continue
+        }
+
+        const result = await onSendFile(peer.ip, {
+          filePath,
+          fileName,
+          fileSize,
+          mimeType
+        })
+
+        if (!result.success) {
+          setError(result.error || `Gagal mengirim file ${fileName}`)
+        }
+      }
+    },
+    [onSendFile, peer.ip]
+  )
+
+  const handleAttachClick = useCallback(async () => {
+    setError('')
+    const result = await window.api.chat.selectFiles()
+
+    if (!result?.success) {
+      setError(result?.error || 'Gagal membuka file picker')
+      return
+    }
+
+    if (!result.files?.length) return
+    await handleSendFiles(result.files)
+  }, [handleSendFiles])
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const files = e.dataTransfer?.files
+    await handleSendFiles(files)
+  }
+
+  const handleAccept = async (msg) => {
+    setError('')
+    const result = await onAcceptFile(msg.fromIp, msg.id, msg.fileName)
+    if (!result.success && !result.canceled) {
+      setError(result.error || 'Gagal menerima file')
+    }
+  }
+
+  const handleReject = async (msg) => {
+    setError('')
+    const result = await onRejectFile(msg.fromIp, msg.id)
+    if (!result.success) {
+      setError(result.error || 'Gagal menolak file')
     }
   }
 
@@ -359,7 +572,34 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
           '&::-webkit-scrollbar': { width: 4 },
           '&::-webkit-scrollbar-thumb': { bgcolor: alpha('#ffffff', 0.12), borderRadius: 2 }
         }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          if (!dragOver) setDragOver(true)
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
       >
+        {dragOver && (
+          <Box
+            sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 5,
+              mb: 1,
+              py: 1,
+              borderRadius: 2,
+              border: `1px dashed ${alpha('#1a73e8', 0.7)}`,
+              bgcolor: alpha('#1a73e8', 0.18),
+              textAlign: 'center'
+            }}
+          >
+            <Typography
+              sx={{ fontSize: 11, color: '#90caf9', fontFamily: '"IBM Plex Mono", monospace' }}
+            >
+              Lepas file di sini untuk kirim ke {peer.username}
+            </Typography>
+          </Box>
+        )}
         {messages.length === 0 && (
           <Stack alignItems="center" justifyContent="center" flex={1} gap={1} py={4}>
             <Message sx={{ fontSize: 32, color: alpha('#e8eaf6', 0.12) }} />
@@ -375,7 +615,12 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
           </Stack>
         )}
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} />
+          <MessageBubble
+            key={msg.id}
+            msg={msg}
+            onAcceptFile={handleAccept}
+            onRejectFile={handleReject}
+          />
         ))}
         <div ref={bottomRef} />
       </Box>
@@ -404,6 +649,23 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
       {/* Input kirim pesan */}
       <Box sx={{ px: 2, pb: 2, pt: 1, flexShrink: 0 }}>
         <Stack direction="row" gap={1} alignItems="flex-end">
+          <Tooltip title="Attach file">
+            <IconButton
+              onClick={handleAttachClick}
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: alpha('#ffffff', 0.06),
+                color: alpha('#e8eaf6', 0.75),
+                borderRadius: '10px',
+                border: `1px solid ${alpha('#ffffff', 0.08)}`,
+                flexShrink: 0,
+                '&:hover': { bgcolor: alpha('#ffffff', 0.1) }
+              }}
+            >
+              <AttachFile sx={{ fontSize: 17 }} />
+            </IconButton>
+          </Tooltip>
           <TextField
             inputRef={inputRef}
             fullWidth
@@ -411,8 +673,9 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
             maxRows={4}
             placeholder={`Pesan ke ${peer.username}...`}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => setText(e.target.value.slice(0, MAX_MESSAGE_CHARS))}
             onKeyDown={handleKeyDown}
+            inputProps={{ maxLength: MAX_MESSAGE_CHARS }}
             variant="outlined"
             size="small"
             sx={{
@@ -464,7 +727,7 @@ function ChatRoom({ peer, messages = [], onBack, onSend }) {
             ml: 0.3
           }}
         >
-          Enter kirim • Shift+Enter baris baru
+          Enter kirim • Shift+Enter baris baru • Maks {MAX_MESSAGE_CHARS} karakter
         </Typography>
       </Box>
     </Stack>
@@ -675,6 +938,9 @@ export const MessengerPage = () => {
     closeRoom,
     chatMessages,
     sendMessage,
+    sendFileOffer,
+    acceptFileOffer,
+    rejectFileOffer,
     unreadCounts
   } = UseMessenger()
 
@@ -718,6 +984,9 @@ export const MessengerPage = () => {
             myInfo={myInfo}
             onBack={closeRoom}
             onSend={sendMessage}
+            onSendFile={sendFileOffer}
+            onAcceptFile={acceptFileOffer}
+            onRejectFile={rejectFileOffer}
           />
         ) : (
           <UserList
