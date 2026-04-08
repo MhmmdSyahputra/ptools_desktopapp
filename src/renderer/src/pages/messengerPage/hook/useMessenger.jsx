@@ -47,28 +47,28 @@ export function UseMessenger() {
   }, [])
 
   useEffect(() => {
-    let isCancelled = false
+    // let isCancelled = false
 
-    const loadSound = async () => {
-      try {
-        const rawPath = await window.api.getNotificationSoundPath()
-        if (!rawPath || isCancelled) return
+    // const loadSound = async () => {
+    //   try {
+    //     const rawPath = await window.api.getNotificationSoundPath()
+    //     if (!rawPath || isCancelled) return
 
-        const src = `${rawPath}\\sounds\\notif.mp3`
+    //     const src = `${rawPath}\\sounds\\notif.mp3`
 
-        const audio = new Audio(src)
-        audio.preload = 'auto'
-        audio.volume = 0.75
-        notificationAudioRef.current = audio
-      } catch (err) {
-        console.error('[UseMessenger] Failed to load notification sound:', err)
-      }
-    }
+    //     const audio = new Audio(src)
+    //     audio.preload = 'auto'
+    //     audio.volume = 0.75
+    //     notificationAudioRef.current = audio
+    //   } catch (err) {
+    //     console.error('[UseMessenger] Failed to load notification sound:', err)
+    //   }
+    // }
 
-    loadSound()
+    // loadSound()
 
     return () => {
-      isCancelled = true
+      // isCancelled = true
       if (notificationAudioRef.current) {
         notificationAudioRef.current.pause()
         notificationAudioRef.current = null

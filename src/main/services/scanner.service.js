@@ -1,5 +1,9 @@
 const fs = require('fs')
 const path = require('path')
+const fsp = fs.promises
+
+const MAX_SCAN_DEPTH = 4
+const YIELD_EVERY = 40
 
 /**
  * Kategori folder sampah:
@@ -226,14 +230,10 @@ export const PROJECT_TYPES = {
   }
 }
 
-/**
- * Deteksi tipe project dari suatu folder.
- * Urutan penting — tipe spesifik (next, vite) di cek sebelum yang umum (node).
- */
-function detectProjectType(dirPath) {
+async function detectProjectTypeAsync(dirPath) {
   const matched = []
   try {
-    const entries = fs.readdirSync(dirPath).map((e) => e.toLowerCase())
+    const entries = (await fsp.readdir(dirPath)).map((e) => e.toLowerCase())
     for (const [type, config] of Object.entries(PROJECT_TYPES)) {
       const isMatch = config.markers.some((marker) => {
         if (marker.includes('*')) {
@@ -248,7 +248,6 @@ function detectProjectType(dirPath) {
     /* skip */
   }
 
-  // Kalau ada tipe spesifik (next/vite/nuxt), hapus generic 'node'
   const specific = ['next', 'vite', 'nuxt', 'remix', 'svelte', 'electron', 'react_native']
   if (matched.some((m) => specific.includes(m))) {
     const idx = matched.indexOf('node')
@@ -258,90 +257,117 @@ function detectProjectType(dirPath) {
   return matched
 }
 
+async function pathExists(targetPath) {
+  try {
+    await fsp.access(targetPath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function yieldToEventLoop() {
+  await new Promise((resolve) => setImmediate(resolve))
+}
+
 /**
  * Scan basePath, deteksi project type, dan cari folder sampah
  */
 export function scanForJunkFolders(basePath) {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(basePath)) {
-      return reject(new Error(`Path tidak ditemukan: ${basePath}`))
-    }
-
-    const results = []
-
-    function scanDir(currentPath, depth = 0) {
-      if (depth > 4) return
-
-      let entries
-      try {
-        entries = fs.readdirSync(currentPath, { withFileTypes: true })
-      } catch {
-        return
-      }
-
-      const projectTypes = detectProjectType(currentPath)
-
-      if (projectTypes.length > 0 && depth > 0) {
-        // Merge semua junkFolders dari semua tipe yang terdeteksi, tanpa duplikat
-        const junkMap = new Map()
-        for (const t of projectTypes) {
-          for (const junk of PROJECT_TYPES[t].junkFolders) {
-            const key = junk.name.toLowerCase()
-            if (!junkMap.has(key)) junkMap.set(key, junk)
-          }
-        }
-
-        const junkFoldersFound = []
-        for (const entry of entries) {
-          if (!entry.isDirectory()) continue
-          const junkDef = junkMap.get(entry.name.toLowerCase())
-          if (junkDef) {
-            const fullPath = path.join(currentPath, entry.name)
-            const sizeInfo = calculateSize(fullPath)
-            junkFoldersFound.push({
-              name: entry.name,
-              category: junkDef.category,
-              fullPath,
-              ...sizeInfo
-            })
-          }
-        }
-
-        if (junkFoldersFound.length > 0) {
-          results.push({
-            project: path.basename(currentPath),
-            projectPath: currentPath,
-            projectTypes: projectTypes.map((t) => ({
-              key: t,
-              label: PROJECT_TYPES[t].label,
-              color: PROJECT_TYPES[t].color
-            })),
-            junkFolders: junkFoldersFound,
-            totalSizeMB: junkFoldersFound
-              .reduce((acc, f) => acc + parseFloat(f.sizeMB || 0), 0)
-              .toFixed(2)
-          })
-        }
-        return
-      }
-
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        const fullPath = path.join(currentPath, entry.name)
-        scanDir(fullPath, depth + 1)
-      }
-    }
-
-    scanDir(basePath)
-    resolve(results)
-  })
+  return scanForJunkFoldersAsync(basePath)
 }
 
-function calculateSize(folderPath) {
+async function scanForJunkFoldersAsync(basePath) {
+  if (!(await pathExists(basePath))) {
+    throw new Error(`Path tidak ditemukan: ${basePath}`)
+  }
+
+  const results = []
+  const queue = [{ currentPath: basePath, depth: 0 }]
+  let processedDirs = 0
+
+  while (queue.length > 0) {
+    const { currentPath, depth } = queue.shift()
+    if (depth > MAX_SCAN_DEPTH) continue
+
+    let entries
+    try {
+      entries = await fsp.readdir(currentPath, { withFileTypes: true })
+    } catch {
+      continue
+    }
+
+    const projectTypes = await detectProjectTypeAsync(currentPath)
+
+    if (projectTypes.length > 0 && depth > 0) {
+      // Merge semua junkFolders dari semua tipe yang terdeteksi, tanpa duplikat
+      const junkMap = new Map()
+      for (const t of projectTypes) {
+        for (const junk of PROJECT_TYPES[t].junkFolders) {
+          const key = junk.name.toLowerCase()
+          if (!junkMap.has(key)) junkMap.set(key, junk)
+        }
+      }
+
+      const junkFoldersFound = []
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const junkDef = junkMap.get(entry.name.toLowerCase())
+        if (!junkDef) continue
+
+        const fullPath = path.join(currentPath, entry.name)
+        const sizeInfo = await calculateSize(fullPath)
+        junkFoldersFound.push({
+          name: entry.name,
+          category: junkDef.category,
+          fullPath,
+          ...sizeInfo
+        })
+      }
+
+      if (junkFoldersFound.length > 0) {
+        results.push({
+          project: path.basename(currentPath),
+          projectPath: currentPath,
+          projectTypes: projectTypes.map((t) => ({
+            key: t,
+            label: PROJECT_TYPES[t].label,
+            color: PROJECT_TYPES[t].color
+          })),
+          junkFolders: junkFoldersFound,
+          totalSizeMB: junkFoldersFound
+            .reduce((acc, f) => acc + parseFloat(f.sizeMB || 0), 0)
+            .toFixed(2)
+        })
+      }
+
+      processedDirs += 1
+      if (processedDirs % YIELD_EVERY === 0) {
+        await yieldToEventLoop()
+      }
+      continue
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue
+      const fullPath = path.join(currentPath, entry.name)
+      queue.push({ currentPath: fullPath, depth: depth + 1 })
+    }
+
+    processedDirs += 1
+    if (processedDirs % YIELD_EVERY === 0) {
+      await yieldToEventLoop()
+    }
+  }
+
+  return results
+}
+
+async function calculateSize(folderPath) {
   try {
-    const entries = fs.readdirSync(folderPath)
+    const entries = await fsp.readdir(folderPath)
     const packageCount = entries.length
-    const sizeBytes = getFolderSize(folderPath)
+    const sizeBytes = await getFolderSize(folderPath)
     const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2)
     return { packageCount, sizeBytes, sizeMB }
   } catch {
@@ -349,15 +375,19 @@ function calculateSize(folderPath) {
   }
 }
 
-function getFolderSize(folderPath) {
+async function getFolderSize(folderPath) {
   let total = 0
   try {
-    const entries = fs.readdirSync(folderPath, { withFileTypes: true })
+    const entries = await fsp.readdir(folderPath, { withFileTypes: true })
     for (const entry of entries) {
       const full = path.join(folderPath, entry.name)
       try {
-        if (entry.isDirectory()) total += getFolderSize(full)
-        else total += fs.statSync(full).size
+        if (entry.isDirectory()) {
+          total += await getFolderSize(full)
+        } else {
+          const stat = await fsp.stat(full)
+          total += stat.size
+        }
       } catch {
         /* skip */
       }
@@ -369,15 +399,18 @@ function getFolderSize(folderPath) {
 }
 
 export function deleteJunkFolder(folderPath) {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!fs.existsSync(folderPath)) {
-        return reject(new Error(`Path tidak ditemukan: ${folderPath}`))
-      }
-      fs.rmSync(folderPath, { recursive: true, force: true })
-      resolve({ success: true, deletedPath: folderPath })
-    } catch (err) {
-      reject(new Error(`Gagal hapus: ${err.message}`))
-    }
-  })
+  return deleteJunkFolderAsync(folderPath)
+}
+
+async function deleteJunkFolderAsync(folderPath) {
+  if (!(await pathExists(folderPath))) {
+    throw new Error(`Path tidak ditemukan: ${folderPath}`)
+  }
+
+  try {
+    await fsp.rm(folderPath, { recursive: true, force: true })
+    return { success: true, deletedPath: folderPath }
+  } catch (err) {
+    throw new Error(`Gagal hapus: ${err.message}`)
+  }
 }

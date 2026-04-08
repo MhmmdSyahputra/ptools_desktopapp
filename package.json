@@ -1,6 +1,6 @@
 {
   "name": "ptools",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "An Electron application with React",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -13,7 +13,9 @@
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "npm run build && electron-builder --win nsis appx",
+    "build:win:exe": "npm run build && electron-builder --win nsis",
+    "build:win:store": "npm run build && electron-builder --win appx",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux"
   },
@@ -46,7 +48,7 @@
     "vite": "^7.2.6"
   },
   "build": {
-    "productName": "PTools",
+    "productName": "PTools Productivity",
     "appId": "com.ptools.desktop",
     "asar": true,
     "publish": [
@@ -71,8 +73,16 @@
     "win": {
       "icon": "resources/ico.ico",
       "target": [
-        "nsis"
+        "nsis",
+        "appx"
       ]
+    },
+    "appx": {
+      "applicationId": "ptoolsproductivity",
+      "displayName": "PTools Productivity",
+      "publisherDisplayName": "putrapt",
+      "identityName": "putrapt.ptoolsproductivity",
+      "publisher": "CN=84050BA2-CA6C-41F7-AC8B-EDCA1D84EEED"
     }
   }
 }
