@@ -6,6 +6,7 @@ import { app } from 'electron'
 
 export function registerAppIpc() {
   const playMainNotificationCue = () => {
+    if (process.platform === 'linux') return
     try {
       shell.beep()
     } catch (error) {
@@ -51,6 +52,10 @@ export function registerAppIpc() {
     try {
       const title = payload.title || 'Ptools Notification'
       const body = payload.body || ''
+
+      if (process.platform === 'linux') {
+        return { status: false, code: 'PLATFORM_LINUX', message: 'Notifications on Linux are safely handled by the renderer process to prevent thread hanging.' }
+      }
 
       if (!Notification.isSupported()) {
         return { status: false, message: 'Notification is not supported on this platform' }

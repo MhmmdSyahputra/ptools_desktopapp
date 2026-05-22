@@ -18,7 +18,34 @@ const api = {
   },
 
   windowNotification: {
-    show: async (payload) => ipcRenderer.invoke('window:show-notification', payload)
+    show: async (payload) => {
+      if (process.platform === 'linux') {
+        try {
+          if (typeof Notification !== 'undefined') {
+            if (Notification.permission === 'granted') {
+              new Notification(payload.title || 'Ptools Notification', {
+                body: payload.body || '',
+                silent: Boolean(payload.silent)
+              })
+              return { status: true, source: 'html5' }
+            } else if (Notification.permission !== 'denied') {
+              const permission = await Notification.requestPermission()
+              if (permission === 'granted') {
+                new Notification(payload.title || 'Ptools Notification', {
+                  body: payload.body || '',
+                  silent: Boolean(payload.silent)
+                })
+                return { status: true, source: 'html5' }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[Notification] Renderer fallback failed:', e)
+        }
+        return { status: false, message: 'HTML5 notifications not available or blocked' }
+      }
+      return ipcRenderer.invoke('window:show-notification', payload)
+    }
   },
 
   // ─── Discovery ─────────────────────────────────────────────────────────────

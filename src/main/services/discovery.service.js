@@ -30,6 +30,7 @@ let pendingOutgoingFiles = new Map()
 let incomingFileTransfers = new Map()
 
 function playMainNotificationCue() {
+  if (os.platform() === 'linux') return
   try {
     shell.beep()
   } catch (error) {
@@ -338,14 +339,26 @@ async function handleIncomingPacket(msg, peerIp) {
 
     if (mainWindow && !mainWindow.isFocused()) {
       playMainNotificationCue()
-      new Notification({
-        title: `💬 ${msg.from}`,
-        body:
-          validated.text.length > 100
-            ? validated.text.slice(0, 100) + '...'
-            : validated.text,
-        silent: false
-      }).show()
+      if (os.platform() !== 'linux') {
+        new Notification({
+          title: `💬 ${msg.from}`,
+          body:
+            validated.text.length > 100
+              ? validated.text.slice(0, 100) + '...'
+              : validated.text,
+          silent: false
+        }).show()
+      } else {
+        // Safe fallback for Linux: notify renderer to show HTML5 notification,
+        // or let the renderer handle the alert asynchronously.
+        notifyRenderer('chat:incoming-notification', {
+          title: `💬 ${msg.from}`,
+          body:
+            validated.text.length > 100
+              ? validated.text.slice(0, 100) + '...'
+              : validated.text
+        })
+      }
     }
 
     console.log(`[Chat] ← ${msg.from} (${peerIp}): ${validated.text}`)
@@ -359,11 +372,19 @@ async function handleIncomingPacket(msg, peerIp) {
 
     if (mainWindow && !mainWindow.isFocused()) {
       playMainNotificationCue()
-      new Notification({
-        title: `📎 File dari ${msg.from}`,
-        body: `${msg.fileName} (${Math.ceil((msg.fileSize || 0) / 1024)} KB)`,
-        silent: false
-      }).show()
+      if (os.platform() !== 'linux') {
+        new Notification({
+          title: `📎 File dari ${msg.from}`,
+          body: `${msg.fileName} (${Math.ceil((msg.fileSize || 0) / 1024)} KB)`,
+          silent: false
+        }).show()
+      } else {
+        // Safe fallback for Linux: notify renderer
+        notifyRenderer('chat:incoming-notification', {
+          title: `📎 File dari ${msg.from}`,
+          body: `${msg.fileName} (${Math.ceil((msg.fileSize || 0) / 1024)} KB)`
+        })
+      }
     }
 
     return
