@@ -11,7 +11,7 @@ const CHAT_PORT = 45679
 const BROADCAST_INTERVAL = 3000
 const PEER_TIMEOUT = 10000
 const APP_ID = 'ptools-electron-app'
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024
 const FILE_CHUNK_SIZE = 64 * 1024
 const MAX_TEXT_CHARS = 4000
 const MAX_TCP_BUFFER_CHARS = 2 * 1024 * 1024
@@ -548,7 +548,7 @@ async function registerOutgoingFileOffer(targetIp, payload) {
   const normalizedSize = fileSize || st.size
 
   if (normalizedSize > MAX_FILE_SIZE_BYTES) {
-    throw new Error('Ukuran file maksimal 50MB')
+    throw new Error('Ukuran file maksimal 5GB')
   }
 
   const me = getMyInfo()
